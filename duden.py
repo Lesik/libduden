@@ -3,6 +3,7 @@ from requests import get
 from textwrap import shorten
 from bs4 import BeautifulSoup
 from string import whitespace
+from http import HTTPStatus
 from collections import OrderedDict
 
 DETAIL_URL = "http://www.duden.de/rechtschreibung/{}"
@@ -27,11 +28,11 @@ class Duden:
             results[word] = desc
         return results
 
-    def __get_details(self, word):
+    def get_details(self, word):
         # TODO
         r = get(DETAIL_URL.format(word))
         # if word is not found in dictionary, status code 404 is returned
-        if r.status_code == 404:
+        if r.status_code == HTTPStatus.NOT_FOUND:
             raise WordNotFoundException()
         soup = BeautifulSoup(r.text, 'lxml')
         titel = soup.select("#block-system-main > h1:nth-child(2)").get_text()
