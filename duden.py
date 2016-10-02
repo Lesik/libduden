@@ -5,10 +5,8 @@ from bs4 import BeautifulSoup
 from string import whitespace
 from collections import OrderedDict
 
-SEARCH_URL = "http://www.duden.de/suchen/dudenonline/{}"
 DETAIL_URL = "http://www.duden.de/rechtschreibung/{}"
-
-BS_PARSER = 'lxml'
+SEARCH_URL = "http://www.duden.de/suchen/dudenonline/{}"
 
 class Duden:
 
@@ -17,12 +15,14 @@ class Duden:
 
     def search(self, keyword):
         """Search for available dictionary entries given a specific keyword."""
-        print("Searching for", SEARCH_URL.format(keyword))
         soup = BeautifulSoup(get(SEARCH_URL.format(keyword)).text, 'lxml')
+        # OrderedDict because entries are sorted by relevance
         results = OrderedDict()
         for result in soup.find_all('section', class_="wide"):
+            # if encountered 'style' attribute result, it's an ad - skip
             if result.has_attr('style'): continue
-            word = result.find('a').get_text().replace(u'\xAD', '')
+            # replace &shy; (which highlights syllables) with empty string
+            word = result.find('a').get_text().replace(u'\xAD', str())
             desc = shorten(result.find('p').get_text(), width=55)
             results[word] = desc
         return results
@@ -30,6 +30,7 @@ class Duden:
     def __get_details(self, word):
         # TODO
         r = get(DETAIL_URL.format(word))
+        # if word is not found in dictionary, status code 404 is returned
         if r.status_code == 404:
             raise WordNotFoundException()
         soup = BeautifulSoup(r.text, 'lxml')
